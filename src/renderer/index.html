@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shuffle Music SD</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header>
+        <h1>🎲 Shuffle Music SD</h1>
+        <p class="subtitle">Baralha as músicas do cartão SD para a coluna Bluetooth</p>
+      </header>
+
+      <section class="card">
+        <label class="field-label">Pasta do cartão SD</label>
+        <div class="folder-row">
+          <span id="folder" class="folder-path muted">Nenhuma pasta escolhida</span>
+          <button id="pick" class="btn btn-secondary">Escolher…</button>
+        </div>
+        <p id="count" class="count muted"></p>
+      </section>
+
+      <button id="shuffle" class="btn btn-primary" disabled>Baralhar músicas</button>
+
+      <section id="result" class="result hidden"></section>
+    </main>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>
