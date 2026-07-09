@@ -3,12 +3,8 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const {
-  physicalShuffle,
-  restoreOriginals,
-  listAudioFiles,
-  listAudioFilesRaw,
-} = require('./shuffle');
+const { restoreOriginals, listAudioFiles, listAudioFilesRaw } = require('./shuffle');
+const { fatShuffle } = require('./fatsort');
 
 const CONFIG_PATH = path.join(app.getPath('userData'), 'config.json');
 
@@ -96,9 +92,9 @@ ipcMain.handle('current-order', (_event, dir) => {
   }
 });
 
-ipcMain.handle('shuffle', (_event, dir) => {
+ipcMain.handle('shuffle', async (_event, dir) => {
   try {
-    const result = physicalShuffle(dir);
+    const result = await fatShuffle(dir);
     return { ok: true, ...result };
   } catch (err) {
     return { ok: false, error: err.message };

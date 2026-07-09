@@ -10,20 +10,22 @@ sem nunca estragar os nomes originais.
 ## Como funciona
 
 Muitas colunas Bluetooth com leitor de cartão SD **não tocam por ordem
-alfabética** — tocam pela **ordem física** em que os ficheiros foram escritos no
-cartão (a ordem da tabela FAT). Por isso renomear as músicas não muda nada.
+alfabética nem pelo nome** — tocam pela **ordem física** em que os ficheiros
+estão registados na tabela FAT do cartão. Por isso renomear as músicas não muda
+nada, e o computador nem sequer deixa ver essa ordem (mostra sempre por nome).
 
-Esta app resolve isso **reordenando fisicamente** as músicas no cartão:
+Esta app resolve isso reescrevendo diretamente a **ordem física da tabela FAT**,
+usando a ferramenta [`fatsort`](https://fatsort.sourceforge.io/) (embutida na
+app, não é preciso instalar nada):
 
-- Move as músicas para uma pasta temporária dentro do próprio cartão e volta a
-  pô-las na raiz por **ordem aleatória**. Isto muda a ordem física (FAT) sem
-  recopiar a música em si — por isso é rápido e suave para o cartão.
-- Os **nomes ficam limpos** (sem números), com o nome original.
-- Nenhuma música se perde: se a operação for interrompida, na vez seguinte a app
-  recupera automaticamente o que ficou na pasta temporária.
+- Desmonta o cartão, baralha a ordem física (`fatsort -R`) e volta a montar.
+- Os **nomes ficam limpos** (sem números).
+- Mostra a nova ordem real que a coluna vai tocar.
+- Só funciona em cartões **FAT/FAT32** (o exFAT não é suportado).
 
-> Também existe o botão **Restaurar nomes originais**, que remove quaisquer
-> números que tenham ficado de versões antigas.
+> Como mexer diretamente no cartão exige permissões, a app pede a tua
+> **palavra-passe do Mac** de cada vez. Existe também o botão **Restaurar nomes
+> originais**, que remove quaisquer números que tenham ficado de versões antigas.
 
 ## Usar
 

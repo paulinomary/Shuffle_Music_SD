@@ -58,7 +58,31 @@ refreshOrderBtn.addEventListener('click', refreshOrder);
 
 shuffleBtn.addEventListener('click', async () => {
   if (!currentFolder) return;
-  await runAction(shuffleBtn, 'A baralhar…', () => window.api.shuffle(currentFolder), '✅ Baralhado!');
+  const buttons = [shuffleBtn, restoreBtn];
+  const originalText = shuffleBtn.textContent;
+  buttons.forEach((b) => (b.disabled = true));
+  shuffleBtn.innerHTML = '<span class="spinner"></span>A baralhar no cartão…';
+  resultEl.className = 'result hidden';
+
+  const res = await window.api.shuffle(currentFolder);
+
+  shuffleBtn.textContent = originalText;
+  buttons.forEach((b) => (b.disabled = false));
+
+  if (!res.ok) {
+    showResult('err', 'Erro', res.error || 'Algo correu mal.');
+    return;
+  }
+
+  // Mostra a nova ordem física real (a que a coluna vai tocar).
+  const list = (res.after || [])
+    .map((n) => `<li><span>${escapeHtml(n)}</span></li>`)
+    .join('');
+  const extra = list
+    ? `<p class="hint muted" style="margin-top:10px">Nova ordem no cartão (é esta que a coluna vai tocar):</p><ul class="order-list">${list}</ul>`
+    : '';
+  showResult('ok', '✅ Baralhado no cartão!', res.message, extra);
+  refreshOrder();
 });
 
 restoreBtn.addEventListener('click', async () => {
@@ -96,9 +120,9 @@ async function runAction(btn, busyText, action, okTitle) {
   refreshOrder();
 }
 
-function showResult(kind, title, message) {
+function showResult(kind, title, message, extraHtml = '') {
   resultEl.className = `result ${kind}`;
-  resultEl.innerHTML = `<h3>${escapeHtml(title)}</h3><div>${escapeHtml(message)}</div>`;
+  resultEl.innerHTML = `<h3>${escapeHtml(title)}</h3><div>${escapeHtml(message)}</div>${extraHtml}`;
 }
 
 function escapeHtml(str) {
