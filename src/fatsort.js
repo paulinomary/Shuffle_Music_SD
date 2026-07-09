@@ -87,19 +87,22 @@ async function fatShuffle(anyPath) {
   fs.chmodSync(tmpFatsort, 0o755);
 
   const rawDevice = device.replace('/dev/disk', '/dev/rdisk');
+  // Disco inteiro (ex.: /dev/disk4s1 -> /dev/disk4). É preciso desmontar o DISCO
+  // inteiro (não só o volume) para o macOS dar acesso direto ao cartão.
+  const wholeDisk = device.replace(/s\d+$/, '');
 
   const scriptPath = path.join(os.tmpdir(), 'shuffle_run.sh');
   // Captura TODAS as mensagens (incluindo erros) da fatsort para diagnóstico.
-  // Tenta o dispositivo normal e, se a listagem falhar, tenta o "raw".
   const script = `#!/bin/sh
 export LC_ALL=C
 D="${device}"
 RD="${rawDevice}"
+WHOLE="${wholeDisk}"
 F="${tmpFatsort}"
-echo "DEVICE=$D"
-diskutil unmount force "$D" 2>&1 || { echo "ERRO_DESMONTAR"; diskutil mount "$D" 2>&1; exit 0; }
-DEV="$D"
-if [ -z "$("$F" -l "$DEV" 2>/dev/null)" ]; then DEV="$RD"; fi
+echo "DEVICE=$D WHOLE=$WHOLE"
+diskutil unmountDisk force "$WHOLE" 2>&1 || { echo "ERRO_DESMONTAR"; diskutil mountDisk "$WHOLE" 2>&1; exit 0; }
+DEV="$RD"
+if [ -z "$("$F" -l "$DEV" 2>/dev/null)" ]; then DEV="$D"; fi
 echo "USANDO=$DEV"
 echo "===ANTES==="
 "$F" -l "$DEV" 2>/dev/null
@@ -109,7 +112,7 @@ echo "RC_FATSORT=$?"
 echo "===DEPOIS==="
 "$F" -l "$DEV" 2>/dev/null
 echo "===FIM==="
-diskutil mount "$D" 2>&1
+diskutil mountDisk "$WHOLE" 2>&1
 exit 0
 `;
   fs.writeFileSync(scriptPath, script, { mode: 0o755 });
