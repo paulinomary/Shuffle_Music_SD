@@ -130,10 +130,77 @@ h1 {
   filter: brightness(1.05);
 }
 
+.btn-danger {
+  background: var(--card-2);
+  color: var(--err);
+  border: 1px solid rgba(255, 107, 125, 0.35);
+  font-size: 14px;
+  padding: 12px;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: rgba(255, 107, 125, 0.12);
+}
+
+.btn-mini {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
 .btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+.card.hidden {
+  display: none;
+}
+
+.order-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hint {
+  margin: -4px 0 0;
+  font-size: 12px;
+}
+
+.order-list {
+  margin: 6px 0 0;
+  padding-left: 0;
+  list-style: none;
+  counter-reset: pos;
+  max-height: 220px;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+.order-list li {
+  counter-increment: pos;
+  display: flex;
+  gap: 10px;
+  padding: 5px 2px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-list li::before {
+  content: counter(pos);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  min-width: 22px;
+  text-align: right;
+  font-weight: 600;
+}
+
+.order-list li span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .result {

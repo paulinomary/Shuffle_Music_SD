@@ -4,7 +4,11 @@ const folderEl = document.getElementById('folder');
 const countEl = document.getElementById('count');
 const pickBtn = document.getElementById('pick');
 const shuffleBtn = document.getElementById('shuffle');
+const restoreBtn = document.getElementById('restore');
 const resultEl = document.getElementById('result');
+const orderCard = document.getElementById('orderCard');
+const orderList = document.getElementById('orderList');
+const refreshOrderBtn = document.getElementById('refreshOrder');
 
 let currentFolder = null;
 
@@ -14,11 +18,16 @@ function setFolder(folder) {
     folderEl.textContent = folder;
     folderEl.classList.remove('muted');
     shuffleBtn.disabled = false;
+    restoreBtn.disabled = false;
+    orderCard.classList.remove('hidden');
     refreshCount();
+    refreshOrder();
   } else {
     folderEl.textContent = 'Nenhuma pasta escolhida';
     folderEl.classList.add('muted');
     shuffleBtn.disabled = true;
+    restoreBtn.disabled = true;
+    orderCard.classList.add('hidden');
     countEl.textContent = '';
   }
 }
@@ -30,46 +39,66 @@ async function refreshCount() {
     n === 0 ? 'Nenhuma música encontrada aqui.' : `${n} música(s) encontrada(s).`;
 }
 
+async function refreshOrder() {
+  if (!currentFolder) return;
+  const names = await window.api.currentOrder(currentFolder);
+  if (!names.length) {
+    orderList.innerHTML = '<li><span class="muted">Sem músicas.</span></li>';
+    return;
+  }
+  orderList.innerHTML = names.map((n) => `<li><span>${escapeHtml(n)}</span></li>`).join('');
+}
+
 pickBtn.addEventListener('click', async () => {
   const folder = await window.api.selectFolder();
   if (folder) setFolder(folder);
 });
 
+refreshOrderBtn.addEventListener('click', refreshOrder);
+
 shuffleBtn.addEventListener('click', async () => {
   if (!currentFolder) return;
-  shuffleBtn.disabled = true;
-  const original = shuffleBtn.textContent;
-  shuffleBtn.innerHTML = '<span class="spinner"></span>A baralhar…';
+  await runAction(shuffleBtn, 'A baralhar…', () => window.api.shuffle(currentFolder), '✅ Baralhado!');
+});
+
+restoreBtn.addEventListener('click', async () => {
+  if (!currentFolder) return;
+  const ok = confirm(
+    'Isto remove os números de todas as músicas e deixa só os nomes originais.\n\nQueres continuar?'
+  );
+  if (!ok) return;
+  await runAction(restoreBtn, 'A restaurar…', () => window.api.restore(currentFolder), '✅ Nomes originais restaurados!');
+});
+
+async function runAction(btn, busyText, action, okTitle) {
+  const buttons = [shuffleBtn, restoreBtn];
+  const originalText = btn.textContent;
+  buttons.forEach((b) => (b.disabled = true));
+  btn.innerHTML = `<span class="spinner"></span>${busyText}`;
   resultEl.className = 'result hidden';
 
-  const res = await window.api.shuffle(currentFolder);
+  const res = await action();
 
-  shuffleBtn.textContent = original;
-  shuffleBtn.disabled = false;
+  btn.textContent = originalText;
+  buttons.forEach((b) => (b.disabled = false));
 
   if (!res.ok) {
     showResult('err', 'Erro', res.error || 'Algo correu mal.');
     return;
   }
-
   if (res.count === 0) {
     showResult('err', 'Sem músicas', res.message);
     return;
   }
 
-  const list = res.changes
-    .slice()
-    .sort((a, b) => a.to.localeCompare(b.to))
-    .map((c) => `<li>${escapeHtml(c.to)}</li>`)
-    .join('');
-
-  showResult('ok', '✅ Pronto!', res.message, `<ul>${list}</ul>`);
+  showResult('ok', okTitle, res.message);
   refreshCount();
-});
+  refreshOrder();
+}
 
-function showResult(kind, title, message, extraHtml = '') {
+function showResult(kind, title, message) {
   resultEl.className = `result ${kind}`;
-  resultEl.innerHTML = `<h3>${title}</h3><div>${escapeHtml(message)}</div>${extraHtml}`;
+  resultEl.innerHTML = `<h3>${escapeHtml(title)}</h3><div>${escapeHtml(message)}</div>`;
 }
 
 function escapeHtml(str) {

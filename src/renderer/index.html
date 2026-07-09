@@ -22,7 +22,17 @@
         <p id="count" class="count muted"></p>
       </section>
 
+      <section id="orderCard" class="card hidden">
+        <div class="order-head">
+          <label class="field-label">Ordem atual no cartão</label>
+          <button id="refreshOrder" class="btn btn-secondary btn-mini">Atualizar</button>
+        </div>
+        <p class="hint muted">É por esta ordem que a coluna deve tocar. Compara com o que ouves.</p>
+        <ol id="orderList" class="order-list"></ol>
+      </section>
+
       <button id="shuffle" class="btn btn-primary" disabled>Baralhar músicas</button>
+      <button id="restore" class="btn btn-danger" disabled>Restaurar nomes originais</button>
 
       <section id="result" class="result hidden"></section>
     </main>

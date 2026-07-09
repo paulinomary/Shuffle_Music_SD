@@ -3,7 +3,7 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { shuffleFolder, listAudioFiles } = require('./shuffle');
+const { shuffleFolder, restoreOriginals, listAudioFiles, listAudioFilesRaw } = require('./shuffle');
 
 const CONFIG_PATH = path.join(app.getPath('userData'), 'config.json');
 
@@ -82,9 +82,27 @@ ipcMain.handle('count-audio', (_event, dir) => {
   }
 });
 
+// Ordem física atual do cartão (para comparar com o que a coluna toca).
+ipcMain.handle('current-order', (_event, dir) => {
+  try {
+    return listAudioFilesRaw(dir);
+  } catch {
+    return [];
+  }
+});
+
 ipcMain.handle('shuffle', (_event, dir) => {
   try {
     const result = shuffleFolder(dir);
+    return { ok: true, ...result };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
+ipcMain.handle('restore', (_event, dir) => {
+  try {
+    const result = restoreOriginals(dir);
     return { ok: true, ...result };
   } catch (err) {
     return { ok: false, error: err.message };

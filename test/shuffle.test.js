@@ -7,7 +7,14 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const assert = require('assert');
-const { shuffleFolder, listAudioFiles, loadDb, DB_FILE } = require('../src/shuffle');
+const {
+  shuffleFolder,
+  restoreOriginals,
+  listAudioFiles,
+  listAudioFilesRaw,
+  loadDb,
+  DB_FILE,
+} = require('../src/shuffle');
 
 let passed = 0;
 function test(name, fn) {
@@ -92,6 +99,43 @@ test('pasta sem músicas devolve contagem 0 sem erro', () => {
   const dir = makeTempDir(['leiame.txt']);
   const res = shuffleFolder(dir);
   assert.strictEqual(res.count, 0);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('restaurar remove os números e deixa os nomes originais', () => {
+  const dir = makeTempDir(['Bohemian Rhapsody.mp3', 'Imagine.mp3', 'Hotel California.mp3']);
+  shuffleFolder(dir);
+  // depois do shuffle têm prefixos
+  assert.ok(currentNames(dir).every((n) => /^\d{3} /.test(n)));
+  const res = restoreOriginals(dir);
+  assert.strictEqual(res.count, 3);
+  assert.deepStrictEqual(currentNames(dir), [
+    'Bohemian Rhapsody.mp3',
+    'Hotel California.mp3',
+    'Imagine.mp3',
+  ]);
+  // a base de dados é apagada porque já não há prefixos
+  assert.ok(!fs.existsSync(path.join(dir, DB_FILE)));
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('restaurar funciona mesmo sem base de dados (usa o plano B)', () => {
+  const dir = makeTempDir(['001 Song A.mp3', '002 Song B.mp3']);
+  // apaga a DB se existir para forçar o fallback
+  try {
+    fs.unlinkSync(path.join(dir, DB_FILE));
+  } catch {}
+  restoreOriginals(dir);
+  assert.deepStrictEqual(currentNames(dir), ['Song A.mp3', 'Song B.mp3']);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('listAudioFilesRaw devolve a ordem física (não alfabética)', () => {
+  const dir = makeTempDir(['A.mp3']);
+  fs.writeFileSync(path.join(dir, 'Z.mp3'), 'x');
+  const raw = listAudioFilesRaw(dir);
+  assert.strictEqual(raw.length, 2);
+  assert.ok(raw.includes('A.mp3') && raw.includes('Z.mp3'));
   fs.rmSync(dir, { recursive: true, force: true });
 });
 

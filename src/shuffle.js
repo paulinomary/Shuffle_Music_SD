@@ -25,20 +25,29 @@ const DB_FILE = '.shuffle_music_db.json';
 // Usado apenas como plano B, quando a base de dados não tem o registo.
 const PREFIX_RE = /^\d{2,}[\s_.\-]+/;
 
+function isAudioFile(dir, name) {
+  if (name.startsWith('.')) return false; // ignora ficheiros escondidos
+  let stat;
+  try {
+    stat = fs.statSync(path.join(dir, name));
+  } catch {
+    return false;
+  }
+  return stat.isFile() && AUDIO_EXTS.has(path.extname(name).toLowerCase());
+}
+
+// Lista as músicas por ORDEM ALFABÉTICA (usada internamente para renomear).
 function listAudioFiles(dir) {
   return fs
     .readdirSync(dir)
-    .filter((name) => {
-      if (name.startsWith('.')) return false; // ignora ficheiros escondidos
-      let stat;
-      try {
-        stat = fs.statSync(path.join(dir, name));
-      } catch {
-        return false;
-      }
-      return stat.isFile() && AUDIO_EXTS.has(path.extname(name).toLowerCase());
-    })
+    .filter((name) => isAudioFile(dir, name))
     .sort((a, b) => a.localeCompare(b));
+}
+
+// Lista as músicas pela ORDEM FÍSICA do cartão (tal como estão no diretório),
+// sem ordenar. É o que mais se aproxima da ordem por que a coluna as toca.
+function listAudioFilesRaw(dir) {
+  return fs.readdirSync(dir).filter((name) => isAudioFile(dir, name));
 }
 
 function loadDb(dir) {
@@ -130,13 +139,65 @@ function shuffleFolder(dir, options = {}) {
   };
 }
 
+// Remove os números de todas as músicas, deixando só os nomes originais.
+// Apaga a base de dados no fim, porque já não há prefixos para acompanhar.
+function restoreOriginals(dir) {
+  if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {
+    throw new Error('A pasta indicada não existe.');
+  }
+
+  const files = listAudioFiles(dir);
+  if (files.length === 0) {
+    return { count: 0, changes: [], message: 'Nenhuma música encontrada nesta pasta.' };
+  }
+
+  const dbMap = loadDb(dir);
+
+  // Calcula o nome original de cada ficheiro, evitando nomes repetidos.
+  const used = new Set();
+  const plan = files.map((f) => {
+    let target = originalNameFor(f, dbMap);
+    if (used.has(target)) {
+      const ext = path.extname(target);
+      const base = target.slice(0, target.length - ext.length);
+      let i = 2;
+      while (used.has(`${base} (${i})${ext}`)) i++;
+      target = `${base} (${i})${ext}`;
+    }
+    used.add(target);
+    return { from: f, to: target };
+  });
+
+  const changed = plan.filter((p) => p.from !== p.to);
+
+  // Renomeação em duas fases para evitar colisões.
+  const temps = changed.map((_, i) => path.join(dir, `.restoretmp_${i}_${Date.now()}`));
+  changed.forEach((r, i) => fs.renameSync(path.join(dir, r.from), temps[i]));
+  changed.forEach((r, i) => fs.renameSync(temps[i], path.join(dir, r.to)));
+
+  // Já não há prefixos: a base de dados deixa de ser necessária.
+  try {
+    fs.unlinkSync(path.join(dir, DB_FILE));
+  } catch {
+    // não existia, tudo bem
+  }
+
+  return {
+    count: plan.length,
+    changes: plan,
+    message: `${plan.length} músicas com o nome original restaurado.`,
+  };
+}
+
 module.exports = {
   AUDIO_EXTS,
   DB_FILE,
   listAudioFiles,
+  listAudioFilesRaw,
   loadDb,
   saveDb,
   originalNameFor,
   buildPlan,
   shuffleFolder,
+  restoreOriginals,
 };
