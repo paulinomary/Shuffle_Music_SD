@@ -10,10 +10,12 @@ const assert = require('assert');
 const {
   shuffleFolder,
   restoreOriginals,
+  physicalShuffle,
   listAudioFiles,
   listAudioFilesRaw,
   loadDb,
   DB_FILE,
+  REORDER_TMP,
 } = require('../src/shuffle');
 
 let passed = 0;
@@ -136,6 +138,48 @@ test('listAudioFilesRaw devolve a ordem física (não alfabética)', () => {
   const raw = listAudioFilesRaw(dir);
   assert.strictEqual(raw.length, 2);
   assert.ok(raw.includes('A.mp3') && raw.includes('Z.mp3'));
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('physicalShuffle mantém todas as músicas com nome original e conteúdo intacto', () => {
+  const dir = makeTempDir([]);
+  const songs = { 'A.mp3': 'aaa', 'B.mp3': 'bbb', 'C.mp3': 'ccc', 'D.mp3': 'ddd' };
+  for (const [n, c] of Object.entries(songs)) fs.writeFileSync(path.join(dir, n), c);
+  const res = physicalShuffle(dir);
+  assert.strictEqual(res.count, 4);
+  assert.deepStrictEqual(currentNames(dir), Object.keys(songs).sort());
+  for (const [n, c] of Object.entries(songs)) {
+    assert.strictEqual(fs.readFileSync(path.join(dir, n), 'utf8'), c);
+  }
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('physicalShuffle não deixa pasta temporária nem base de dados', () => {
+  const dir = makeTempDir(['X.mp3', 'Y.mp3']);
+  physicalShuffle(dir);
+  assert.ok(!fs.existsSync(path.join(dir, REORDER_TMP)));
+  assert.ok(!fs.existsSync(path.join(dir, DB_FILE)));
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('physicalShuffle recupera músicas de uma pasta temporária interrompida', () => {
+  const dir = makeTempDir(['Song1.mp3']);
+  // simula uma falha a meio: uma música ficou na pasta temporária
+  const tmp = path.join(dir, REORDER_TMP);
+  fs.mkdirSync(tmp);
+  fs.writeFileSync(path.join(tmp, '0_Song2.mp3'), 'preso');
+  physicalShuffle(dir);
+  // a Song2 tem de voltar à raiz, nada se perde
+  assert.deepStrictEqual(currentNames(dir), ['Song1.mp3', 'Song2.mp3']);
+  assert.ok(!fs.existsSync(tmp));
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('physicalShuffle com keepNumbers adiciona prefixos e guarda a base de dados', () => {
+  const dir = makeTempDir(['Um.mp3', 'Dois.mp3', 'Tres.mp3']);
+  physicalShuffle(dir, { keepNumbers: true });
+  assert.ok(currentNames(dir).every((n) => /^\d{3} /.test(n)));
+  assert.ok(fs.existsSync(path.join(dir, DB_FILE)));
   fs.rmSync(dir, { recursive: true, force: true });
 });
 

@@ -9,11 +9,21 @@ sem nunca estragar os nomes originais.
 
 ## Como funciona
 
-- Cada música fica com um número à frente: `042 Nome da Música.mp3`.
-- Antes de pôr o número novo, o número do dia anterior é removido.
-- Os **nomes originais** ficam guardados numa base de dados escondida no próprio
-  cartão (`.shuffle_music_db.json`), por isso nunca se perdem.
-- Se adicionares músicas novas ao cartão, na próxima vez também entram no sorteio.
+Muitas colunas Bluetooth baratas com leitor de cartão SD **não tocam por ordem
+alfabética** — tocam pela **ordem física** em que os ficheiros foram escritos no
+cartão (a ordem da tabela FAT). Por isso renomear as músicas não muda nada.
+
+Esta app resolve isso **reordenando fisicamente** as músicas no cartão:
+
+- Move as músicas para uma pasta temporária dentro do próprio cartão e volta a
+  pô-las na raiz por **ordem aleatória**. Isto muda a ordem física (FAT) sem
+  recopiar a música em si — por isso é rápido e suave para o cartão.
+- Os **nomes ficam limpos** (sem números), com o nome original.
+- Nenhuma música se perde: se a operação for interrompida, na vez seguinte a app
+  recupera automaticamente o que ficou na pasta temporária.
+
+> Também existe o botão **Restaurar nomes originais**, que remove quaisquer
+> números que tenham ficado de versões antigas.
 
 ## Usar
 
@@ -25,6 +35,7 @@ npm start        # abre a aplicação
 ```
 
 Na app:
+
 1. Carrega em **Escolher…** e seleciona a pasta do cartão SD.
 2. Carrega em **Baralhar músicas**.
 3. Pronto — a ordem foi trocada. Ejeta o cartão e mete na coluna.

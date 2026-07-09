@@ -189,9 +189,108 @@ function restoreOriginals(dir) {
   };
 }
 
+// Nome da pasta temporária usada durante a reordenação física.
+const REORDER_TMP = '.shuffle_reorder_tmp';
+
+// Se sobrou uma pasta temporária de uma execução interrompida, devolve as
+// músicas à raiz antes de continuar (segurança contra falhas a meio).
+function recoverTemp(dir) {
+  const tmp = path.join(dir, REORDER_TMP);
+  if (!fs.existsSync(tmp)) return;
+  for (const name of fs.readdirSync(tmp)) {
+    const original = name.replace(/^\d+_/, ''); // tira o prefixo técnico "12_"
+    let dest = path.join(dir, original);
+    if (fs.existsSync(dest)) dest = path.join(dir, `recuperado_${original}`);
+    try {
+      fs.renameSync(path.join(tmp, name), dest);
+    } catch {
+      // ignora ficheiros problemáticos
+    }
+  }
+  fs.rmSync(tmp, { recursive: true, force: true });
+}
+
+// SOLUÇÃO ROBUSTA para colunas que leem pela ordem FAT (ordem física).
+// Move todas as músicas para uma pasta temporária dentro do cartão e volta a
+// colocá-las na raiz por ordem aleatória. Isto reescreve a ORDEM das entradas
+// no cartão sem recopiar a música em si (rápido e suave para o cartão).
+// Os nomes ficam limpos (sem números), a menos que keepNumbers seja true.
+function physicalShuffle(dir, options = {}) {
+  const { keepNumbers = false } = options;
+
+  if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {
+    throw new Error('A pasta indicada não existe.');
+  }
+
+  recoverTemp(dir);
+
+  const files = listAudioFilesRaw(dir);
+  if (files.length === 0) {
+    return { count: 0, changes: [], reordered: false, message: 'Nenhuma música encontrada nesta pasta.' };
+  }
+
+  const dbMap = loadDb(dir);
+  const items = files.map((f) => ({ current: f, original: originalNameFor(f, dbMap) }));
+  shuffleInPlace(items);
+
+  const width = Math.max(3, String(items.length).length);
+  const used = new Set();
+  const targets = items.map((it, idx) => {
+    let name = keepNumbers ? `${String(idx + 1).padStart(width, '0')} ${it.original}` : it.original;
+    if (used.has(name)) {
+      const ext = path.extname(name);
+      const base = name.slice(0, name.length - ext.length);
+      let i = 2;
+      while (used.has(`${base} (${i})${ext}`)) i++;
+      name = `${base} (${i})${ext}`;
+    }
+    used.add(name);
+    return { from: it.current, to: name, original: it.original };
+  });
+
+  const tmp = path.join(dir, REORDER_TMP);
+  fs.mkdirSync(tmp);
+
+  // Fase 1: tira todas as músicas da raiz (liberta as entradas físicas).
+  const tmpPaths = targets.map((t, i) => path.join(tmp, `${i}_${t.to}`));
+  targets.forEach((t, i) => fs.renameSync(path.join(dir, t.from), tmpPaths[i]));
+
+  // Fase 2: repõe na raiz pela ordem aleatória (cria as entradas por essa ordem).
+  targets.forEach((t, i) => fs.renameSync(tmpPaths[i], path.join(dir, t.to)));
+
+  fs.rmSync(tmp, { recursive: true, force: true });
+
+  // Atualiza a base de dados conforme haja ou não números.
+  if (keepNumbers) {
+    const newMap = {};
+    targets.forEach((t) => (newMap[t.to] = t.original));
+    saveDb(dir, newMap);
+  } else {
+    try {
+      fs.unlinkSync(path.join(dir, DB_FILE));
+    } catch {
+      // não existia
+    }
+  }
+
+  // Verifica se a ordem física ficou como pretendíamos.
+  const after = listAudioFilesRaw(dir);
+  const intended = targets.map((t) => t.to);
+  const reordered =
+    after.length === intended.length && after.every((n, i) => n === intended[i]);
+
+  return {
+    count: targets.length,
+    changes: targets,
+    reordered,
+    message: `${targets.length} músicas reordenadas fisicamente no cartão.`,
+  };
+}
+
 module.exports = {
   AUDIO_EXTS,
   DB_FILE,
+  REORDER_TMP,
   listAudioFiles,
   listAudioFilesRaw,
   loadDb,
@@ -200,4 +299,5 @@ module.exports = {
   buildPlan,
   shuffleFolder,
   restoreOriginals,
+  physicalShuffle,
 };
