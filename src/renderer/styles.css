@@ -157,6 +157,10 @@ h1 {
   display: none;
 }
 
+.btn.hidden {
+  display: none;
+}
+
 .order-head {
   display: flex;
   align-items: center;

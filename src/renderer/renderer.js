@@ -9,6 +9,7 @@ const resultEl = document.getElementById('result');
 const orderCard = document.getElementById('orderCard');
 const orderList = document.getElementById('orderList');
 const refreshOrderBtn = document.getElementById('refreshOrder');
+const lastOrderBtn = document.getElementById('lastOrder');
 
 let currentFolder = null;
 
@@ -22,15 +23,40 @@ function setFolder(folder) {
     orderCard.classList.remove('hidden');
     refreshCount();
     refreshOrder();
+    refreshLastOrder();
   } else {
     folderEl.textContent = 'Nenhuma pasta escolhida';
     folderEl.classList.add('muted');
     shuffleBtn.disabled = true;
     restoreBtn.disabled = true;
     orderCard.classList.add('hidden');
+    lastOrderBtn.classList.add('hidden');
     countEl.textContent = '';
   }
 }
+
+async function refreshLastOrder() {
+  if (!currentFolder) {
+    lastOrderBtn.classList.add('hidden');
+    return;
+  }
+  const last = await window.api.lastOrder(currentFolder);
+  const has = last && last.order && last.order.length;
+  lastOrderBtn.classList.toggle('hidden', !has);
+}
+
+lastOrderBtn.addEventListener('click', async () => {
+  const last = await window.api.lastOrder(currentFolder);
+  if (!last || !last.order) return;
+  const when = new Date(last.ts).toLocaleString('pt-PT');
+  const list = last.order.map((n) => `<li><span>${escapeHtml(n)}</span></li>`).join('');
+  showResult(
+    'ok',
+    'Última ordem baralhada',
+    `Baralhado em ${when}. É esta a ordem que a coluna toca:`,
+    `<ul class="order-list">${list}</ul>`
+  );
+});
 
 async function refreshCount() {
   if (!currentFolder) return;
@@ -92,6 +118,7 @@ shuffleBtn.addEventListener('click', async () => {
     : '';
   showResult('ok', '✅ Baralhado no cartão!', res.message, extra);
   refreshOrder();
+  refreshLastOrder();
 });
 
 restoreBtn.addEventListener('click', async () => {

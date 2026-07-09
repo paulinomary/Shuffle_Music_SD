@@ -7,6 +7,25 @@ const { restoreOriginals, listAudioFiles, listAudioFilesRaw } = require('./shuff
 const { reorderByCopy } = require('./reorder');
 
 const BACKUP_DIR = path.join(app.getPath('userData'), 'backup');
+const ORDERS_PATH = path.join(app.getPath('userData'), 'last-orders.json');
+
+function loadOrders() {
+  try {
+    return JSON.parse(fs.readFileSync(ORDERS_PATH, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function saveLastOrder(dir, order) {
+  try {
+    const all = loadOrders();
+    all[dir] = { order, ts: Date.now() };
+    fs.writeFileSync(ORDERS_PATH, JSON.stringify(all, null, 2));
+  } catch {
+    // não crítico
+  }
+}
 
 const CONFIG_PATH = path.join(app.getPath('userData'), 'config.json');
 
@@ -100,10 +119,16 @@ ipcMain.handle('shuffle', async (event, dir) => {
       backupDir: BACKUP_DIR,
       onProgress: (p) => event.sender.send('reorder-progress', p),
     });
+    if (result.count > 0) saveLastOrder(dir, result.order);
     return { ok: true, ...result };
   } catch (err) {
     return { ok: false, error: err.message };
   }
+});
+
+ipcMain.handle('last-order', (_event, dir) => {
+  const all = loadOrders();
+  return all[dir] || null;
 });
 
 ipcMain.handle('restore', (_event, dir) => {
