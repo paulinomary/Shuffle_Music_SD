@@ -1,6 +1,6 @@
 # 🎲 Shuffle Music SD
 
-App de desktop simples que **baralha as músicas de um cartão SD** adicionando um
+App desktop simples que **baralha as músicas de um cartão SD** adicionando um
 número aleatório à frente de cada nome. Ideal para colunas Bluetooth que leem o
 cartão por ordem alfabética e **não têm botão de shuffle**.
 
@@ -9,7 +9,7 @@ sem nunca estragar os nomes originais.
 
 ## Como funciona
 
-Muitas colunas Bluetooth baratas com leitor de cartão SD **não tocam por ordem
+Muitas colunas Bluetooth com leitor de cartão SD **não tocam por ordem
 alfabética** — tocam pela **ordem física** em que os ficheiros foram escritos no
 cartão (a ordem da tabela FAT). Por isso renomear as músicas não muda nada.
 
