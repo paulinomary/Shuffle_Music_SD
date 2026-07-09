@@ -4,7 +4,9 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { restoreOriginals, listAudioFiles, listAudioFilesRaw } = require('./shuffle');
-const { fatShuffle } = require('./fatsort');
+const { reorderByCopy } = require('./reorder');
+
+const BACKUP_DIR = path.join(app.getPath('userData'), 'backup');
 
 const CONFIG_PATH = path.join(app.getPath('userData'), 'config.json');
 
@@ -92,9 +94,12 @@ ipcMain.handle('current-order', (_event, dir) => {
   }
 });
 
-ipcMain.handle('shuffle', async (_event, dir) => {
+ipcMain.handle('shuffle', async (event, dir) => {
   try {
-    const result = await fatShuffle(dir);
+    const result = await reorderByCopy(dir, {
+      backupDir: BACKUP_DIR,
+      onProgress: (p) => event.sender.send('reorder-progress', p),
+    });
     return { ok: true, ...result };
   } catch (err) {
     return { ok: false, error: err.message };

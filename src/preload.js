@@ -11,4 +11,5 @@ contextBridge.exposeInMainWorld('api', {
   currentOrder: (dir) => ipcRenderer.invoke('current-order', dir),
   shuffle: (dir) => ipcRenderer.invoke('shuffle', dir),
   restore: (dir) => ipcRenderer.invoke('restore', dir),
+  onProgress: (cb) => ipcRenderer.on('reorder-progress', (_e, p) => cb(p)),
 });

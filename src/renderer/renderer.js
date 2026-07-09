@@ -56,12 +56,17 @@ pickBtn.addEventListener('click', async () => {
 
 refreshOrderBtn.addEventListener('click', refreshOrder);
 
+window.api.onProgress((p) => {
+  const verbo = p.phase === 'backup' ? 'A preparar' : 'A gravar no cartão';
+  shuffleBtn.innerHTML = `<span class="spinner"></span>${verbo}… ${p.done}/${p.total}`;
+});
+
 shuffleBtn.addEventListener('click', async () => {
   if (!currentFolder) return;
   const buttons = [shuffleBtn, restoreBtn];
   const originalText = shuffleBtn.textContent;
   buttons.forEach((b) => (b.disabled = true));
-  shuffleBtn.innerHTML = '<span class="spinner"></span>A baralhar no cartão…';
+  shuffleBtn.innerHTML = '<span class="spinner"></span>A começar…';
   resultEl.className = 'result hidden';
 
   const res = await window.api.shuffle(currentFolder);
@@ -73,9 +78,13 @@ shuffleBtn.addEventListener('click', async () => {
     showResult('err', 'Erro', res.error || 'Algo correu mal.');
     return;
   }
+  if (res.count === 0) {
+    showResult('err', 'Sem músicas', res.message);
+    return;
+  }
 
-  // Mostra a nova ordem física real (a que a coluna vai tocar).
-  const list = (res.after || [])
+  // A ordem por que copiámos É a nova ordem física que a coluna vai tocar.
+  const list = (res.order || [])
     .map((n) => `<li><span>${escapeHtml(n)}</span></li>`)
     .join('');
   const extra = list

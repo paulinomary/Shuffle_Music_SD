@@ -1,6 +1,6 @@
 {
   "name": "shuffle-music-sd",
-  "version": "2.0.2",
+  "version": "3.0.0",
   "description": "App de desktop que baralha as músicas de um cartão SD adicionando um número aleatório ao nome, para colunas Bluetooth sem shuffle.",
   "main": "src/main.js",
   "author": "Mariana Paulino",
@@ -14,8 +14,7 @@
     "appId": "com.marianapaulino.shufflemusicsd",
     "productName": "Shuffle Music SD",
     "files": ["src/**/*", "package.json"],
-    "extraResources": [{ "from": "resources/fatsort", "to": "fatsort" }],
-    "mac": { "target": "dmg", "x64ArchFiles": "Contents/Resources/fatsort" },
+    "mac": { "target": "dmg" },
     "win": { "target": "nsis" }
   },
   "devDependencies": {

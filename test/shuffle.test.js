@@ -183,4 +183,70 @@ test('physicalShuffle com keepNumbers adiciona prefixos e guarda a base de dados
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-console.log(`\n${passed} teste(s) passaram.`);
+// --- Testes assíncronos do motor de reordenação por cópia (v3.0) ---
+
+const { reorderByCopy, recover, cleanMacJunk } = require('../src/reorder');
+
+async function testAsync(name, fn) {
+  try {
+    await fn();
+    passed++;
+    console.log(`  ✓ ${name}`);
+  } catch (err) {
+    console.error(`  ✗ ${name}\n    ${err.message}`);
+    process.exitCode = 1;
+  }
+}
+
+async function runAsyncTests() {
+  const backup = path.join(os.tmpdir(), 'shuffle-test-backup');
+
+  await testAsync('reorderByCopy mantém todas as músicas e conteúdo intacto', async () => {
+    fs.rmSync(backup, { recursive: true, force: true });
+    const dir = makeTempDir([]);
+    const songs = { 'A.mp3': 'aaa', 'B.mp3': 'bbbb', 'C.mp3': 'cc', 'D.mp3': 'dddd' };
+    for (const [n, c] of Object.entries(songs)) fs.writeFileSync(path.join(dir, n), c);
+    const res = await reorderByCopy(dir, { backupDir: backup });
+    assert.strictEqual(res.count, 4);
+    assert.strictEqual(res.order.length, 4);
+    assert.deepStrictEqual(currentNames(dir), Object.keys(songs).sort());
+    for (const [n, c] of Object.entries(songs)) {
+      assert.strictEqual(fs.readFileSync(path.join(dir, n), 'utf8'), c);
+    }
+    assert.ok(!fs.existsSync(backup), 'cópia de segurança devia ter sido removida');
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  await testAsync('reorderByCopy recupera dados de uma execução interrompida', async () => {
+    fs.rmSync(backup, { recursive: true, force: true });
+    const dir = makeTempDir([]);
+    // simula crash: músicas estão só na cópia de segurança, não no cartão
+    fs.mkdirSync(backup, { recursive: true });
+    fs.writeFileSync(path.join(backup, 'Perdida1.mp3'), 'dados1');
+    fs.writeFileSync(path.join(backup, 'Perdida2.mp3'), 'dados2');
+    fs.writeFileSync(
+      path.join(backup, '.manifest.json'),
+      JSON.stringify({ cardDir: dir, files: ['Perdida1.mp3', 'Perdida2.mp3'] })
+    );
+    const r = await recover(dir, backup);
+    assert.strictEqual(r.recovered, 2);
+    assert.strictEqual(fs.readFileSync(path.join(dir, 'Perdida1.mp3'), 'utf8'), 'dados1');
+    assert.ok(!fs.existsSync(backup));
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  await testAsync('cleanMacJunk remove ._ficheiros e .DS_Store', async () => {
+    const dir = makeTempDir(['Song.mp3']);
+    fs.writeFileSync(path.join(dir, '._Song.mp3'), 'junk');
+    fs.writeFileSync(path.join(dir, '.DS_Store'), 'junk');
+    cleanMacJunk(dir);
+    const left = fs.readdirSync(dir).sort();
+    assert.deepStrictEqual(left, ['Song.mp3']);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  console.log(`\n${passed} teste(s) passaram.`);
+}
+
+console.log('');
+runAsyncTests();
