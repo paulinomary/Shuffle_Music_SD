@@ -176,14 +176,12 @@ h1 {
   margin: 6px 0 0;
   padding-left: 0;
   list-style: none;
-  counter-reset: pos;
   max-height: 220px;
   overflow-y: auto;
   font-size: 13px;
 }
 
 .order-list li {
-  counter-increment: pos;
   display: flex;
   gap: 10px;
   padding: 5px 2px;
@@ -194,12 +192,9 @@ h1 {
 }
 
 .order-list li::before {
-  content: counter(pos);
+  content: "♪";
   color: var(--accent);
-  font-variant-numeric: tabular-nums;
-  min-width: 22px;
-  text-align: right;
-  font-weight: 600;
+  min-width: 14px;
 }
 
 .order-list li span {
