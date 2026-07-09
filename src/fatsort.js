@@ -86,26 +86,31 @@ async function fatShuffle(anyPath) {
   fs.copyFileSync(fatsort, tmpFatsort);
   fs.chmodSync(tmpFatsort, 0o755);
 
-  // Usa o dispositivo "raw" (mais fiável quando desmontado).
   const rawDevice = device.replace('/dev/disk', '/dev/rdisk');
 
   const scriptPath = path.join(os.tmpdir(), 'shuffle_run.sh');
+  // Captura TODAS as mensagens (incluindo erros) da fatsort para diagnóstico.
+  // Tenta o dispositivo normal e, se a listagem falhar, tenta o "raw".
   const script = `#!/bin/sh
 export LC_ALL=C
 D="${device}"
 RD="${rawDevice}"
 F="${tmpFatsort}"
-diskutil unmount force "$D" >/dev/null 2>&1 || { echo "ERRO_DESMONTAR"; exit 1; }
+echo "DEVICE=$D"
+diskutil unmount force "$D" 2>&1 || { echo "ERRO_DESMONTAR"; diskutil mount "$D" 2>&1; exit 0; }
+DEV="$D"
+if [ -z "$("$F" -l "$DEV" 2>/dev/null)" ]; then DEV="$RD"; fi
+echo "USANDO=$DEV"
 echo "===ANTES==="
-"$F" -l "$RD" 2>/dev/null
-echo "===BARALHAR==="
-"$F" -R "$RD" 2>/dev/null
-RC=$?
+"$F" -l "$DEV" 2>/dev/null
+echo "===DIAG==="
+"$F" -R "$DEV" 2>&1
+echo "RC_FATSORT=$?"
 echo "===DEPOIS==="
-"$F" -l "$RD" 2>/dev/null
+"$F" -l "$DEV" 2>/dev/null
 echo "===FIM==="
-diskutil mount "$D" >/dev/null 2>&1
-echo "RC=$RC"
+diskutil mount "$D" 2>&1
+exit 0
 `;
   fs.writeFileSync(scriptPath, script, { mode: 0o755 });
 
@@ -118,15 +123,26 @@ echo "RC=$RC"
     if (/User canceled|-128/.test(err.message)) {
       throw new Error('Cancelaste a autorização — nada foi alterado.');
     }
-    throw new Error('Não foi possível reordenar o cartão. Verifica que está bem ligado.');
+    throw new Error('Não foi possível correr a reordenação. Verifica que o cartão está bem ligado.');
   }
 
   if (/ERRO_DESMONTAR/.test(stdout)) {
-    throw new Error('Não foi possível desmontar o cartão (pode estar em uso). Fecha outras janelas e tenta de novo.');
+    throw new Error('Não foi possível desmontar o cartão (pode estar a ser usado por outra app). Fecha o Finder/janelas do cartão e tenta de novo.');
   }
 
-  const before = sliceList(stdout, '===ANTES===', '===BARALHAR===');
+  const before = sliceList(stdout, '===ANTES===', '===DIAG===');
   const after = sliceList(stdout, '===DEPOIS===', '===FIM===');
+  const diag = stdout.slice(stdout.indexOf('===DIAG===') + 10, stdout.indexOf('===DEPOIS==='))
+    .split(/[\r\n]+/).map((s) => s.trim()).filter(Boolean).join(' | ');
+  const rcMatch = stdout.match(/RC_FATSORT=(\d+)/);
+  const rc = rcMatch ? Number(rcMatch[1]) : -1;
+
+  // Só é sucesso se a fatsort correu bem E ficaram músicas listadas.
+  if (rc !== 0 || after.length === 0) {
+    throw new Error(
+      `A reordenação não deu resultado (0 músicas). Detalhe técnico: ${diag || 'sem mensagem'}.`
+    );
+  }
 
   return {
     device,
