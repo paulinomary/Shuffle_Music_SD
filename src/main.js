@@ -3,7 +3,7 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { restoreOriginals, listAudioFiles, listAudioFilesRaw } = require('./shuffle');
+const { listAudioFiles, listAudioFilesRaw } = require('./shuffle');
 const { reorderByCopy } = require('./reorder');
 
 const BACKUP_DIR = path.join(app.getPath('userData'), 'backup');
@@ -129,13 +129,4 @@ ipcMain.handle('shuffle', async (event, dir) => {
 ipcMain.handle('last-order', (_event, dir) => {
   const all = loadOrders();
   return all[dir] || null;
-});
-
-ipcMain.handle('restore', (_event, dir) => {
-  try {
-    const result = restoreOriginals(dir);
-    return { ok: true, ...result };
-  } catch (err) {
-    return { ok: false, error: err.message };
-  }
 });

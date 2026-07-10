@@ -10,7 +10,6 @@ contextBridge.exposeInMainWorld('api', {
   countAudio: (dir) => ipcRenderer.invoke('count-audio', dir),
   currentOrder: (dir) => ipcRenderer.invoke('current-order', dir),
   shuffle: (dir) => ipcRenderer.invoke('shuffle', dir),
-  restore: (dir) => ipcRenderer.invoke('restore', dir),
   lastOrder: (dir) => ipcRenderer.invoke('last-order', dir),
   onProgress: (cb) => ipcRenderer.on('reorder-progress', (_e, p) => cb(p)),
 });

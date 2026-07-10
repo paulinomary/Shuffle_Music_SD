@@ -29,8 +29,7 @@ A ordem por que são copiadas passa a ser a ordem por que a coluna toca. Vantage
   cópia de segurança (nada se perde).
 
 > Como copia todas as músicas, pode demorar alguns minutos. Não retires o cartão
-> durante o processo. Existe também o botão **Restaurar nomes originais**, que
-> remove quaisquer números que tenham ficado de versões antigas.
+> durante o processo.
 
 ## Usar
 
