@@ -7,14 +7,18 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+
     <main class="app">
       <header>
-        <h1>🎲 Shuffle Music SD</h1>
-        <p class="subtitle">Baralha as músicas do cartão SD para a coluna Bluetooth</p>
+        <div class="logo">🔀</div>
+        <h1>Shuffle Music SD</h1>
+        <p class="subtitle">Baralha as músicas do cartão para a coluna</p>
       </header>
 
       <section class="card">
-        <label class="field-label">Pasta do cartão SD</label>
+        <span class="field-label">Pasta do cartão SD</span>
         <div class="folder-row">
           <span id="folder" class="folder-path muted">Nenhuma pasta escolhida</span>
           <button id="pick" class="btn btn-secondary">Escolher…</button>
@@ -24,17 +28,28 @@
 
       <section id="orderCard" class="card hidden">
         <div class="order-head">
-          <label class="field-label">Músicas no cartão</label>
-          <button id="refreshOrder" class="btn btn-secondary btn-mini">Atualizar</button>
+          <span class="field-label">Músicas no cartão</span>
+          <button id="refreshOrder" class="btn btn-ghost btn-mini">Atualizar</button>
         </div>
         <p class="hint muted">Lista por ordem alfabética. A ordem real por que a coluna toca só se vê na própria coluna — o computador mostra sempre por nome.</p>
         <ul id="orderList" class="order-list"></ul>
       </section>
 
-      <button id="shuffle" class="btn btn-primary" disabled>Baralhar músicas</button>
-      <p class="hint muted center">Reordena as músicas no cartão para a coluna tocar por uma ordem nova. Pode demorar alguns minutos (copia as músicas). Não retires o cartão durante o processo. Os nomes ficam limpos, sem números.</p>
-      <button id="lastOrder" class="btn btn-secondary hidden">Ver última ordem baralhada</button>
-      <button id="restore" class="btn btn-danger" disabled>Restaurar nomes originais (tirar números)</button>
+      <button id="shuffle" class="btn btn-primary" disabled>
+        <span class="btn-icon">🔀</span> Baralhar músicas
+      </button>
+
+      <div id="progress" class="progress hidden">
+        <div class="progress-track"><div id="progressBar" class="progress-fill"></div></div>
+        <span id="progressText" class="progress-text muted"></span>
+      </div>
+
+      <p class="hint center">Reordena as músicas no cartão para a coluna tocar por uma ordem nova. Pode demorar alguns minutos. Não retires o cartão durante o processo.</p>
+
+      <div class="secondary-actions">
+        <button id="lastOrder" class="btn btn-ghost hidden">Ver última ordem</button>
+        <button id="restore" class="btn btn-ghost" disabled>Restaurar nomes originais</button>
+      </div>
 
       <section id="result" class="result hidden"></section>
     </main>

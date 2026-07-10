@@ -10,7 +10,11 @@ const orderCard = document.getElementById('orderCard');
 const orderList = document.getElementById('orderList');
 const refreshOrderBtn = document.getElementById('refreshOrder');
 const lastOrderBtn = document.getElementById('lastOrder');
+const progressEl = document.getElementById('progress');
+const progressBar = document.getElementById('progressBar');
+const progressText = document.getElementById('progressText');
 
+const shuffleBtnHTML = shuffleBtn.innerHTML;
 let currentFolder = null;
 
 function setFolder(folder) {
@@ -84,21 +88,26 @@ refreshOrderBtn.addEventListener('click', refreshOrder);
 
 window.api.onProgress((p) => {
   const verbo = p.phase === 'backup' ? 'A preparar' : 'A gravar no cartão';
-  shuffleBtn.innerHTML = `<span class="spinner"></span>${verbo}… ${p.done}/${p.total}`;
+  const pct = p.total ? Math.round((p.done / p.total) * 100) : 0;
+  progressBar.style.width = `${pct}%`;
+  progressText.textContent = `${verbo}… ${p.done}/${p.total} (${pct}%)`;
 });
 
 shuffleBtn.addEventListener('click', async () => {
   if (!currentFolder) return;
-  const buttons = [shuffleBtn, restoreBtn];
-  const originalText = shuffleBtn.textContent;
+  const buttons = [shuffleBtn, restoreBtn, lastOrderBtn];
   buttons.forEach((b) => (b.disabled = true));
   shuffleBtn.innerHTML = '<span class="spinner"></span>A começar…';
   resultEl.className = 'result hidden';
+  progressBar.style.width = '0%';
+  progressText.textContent = 'A começar…';
+  progressEl.classList.remove('hidden');
 
   const res = await window.api.shuffle(currentFolder);
 
-  shuffleBtn.textContent = originalText;
+  shuffleBtn.innerHTML = shuffleBtnHTML;
   buttons.forEach((b) => (b.disabled = false));
+  progressEl.classList.add('hidden');
 
   if (!res.ok) {
     showResult('err', 'Erro', res.error || 'Algo correu mal.');
